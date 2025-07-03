@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="{{.Lang.Code}}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.I18N.title}} - {{.Base.SiteName}}</title>
+    <meta name="description" content="{{.I18N.description}}">
+    <meta name="author" content="{{.Base.Author}}">
+    {{if .Base.BaseURL}}<base href="{{.Base.BaseURL}}/">{{end}}
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #eee;
+        }
+        .lang-switcher {
+            margin: 20px 0;
+            text-align: center;
+        }
+        .lang-switcher a {
+            margin: 0 10px;
+            text-decoration: none;
+            padding: 5px 10px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+        .lang-switcher a:hover {
+            background-color: #f5f5f5;
+        }
+        .lang-switcher a.current {
+            background-color: #007cba;
+            color: white;
+            border-color: #007cba;
+        }
+        .content {
+            margin: 40px 0;
+        }
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>{{.I18N.title}}</h1>
+        <p>{{.I18N.subtitle}}</p>
+    </div>
+
+    <div class="lang-switcher">
+        <strong>{{.I18N.language_switcher}}:</strong>
+        {{range .LangLinks}}
+        <a href="{{.URL}}" {{if .Current}}class="current"{{end}} title="{{$.I18N.switch_to}} {{.DisplayName}}">{{.DisplayName}}</a>
+        {{end}}
+    </div>
+
+    <div class="content">
+        <h2>{{.I18N.welcome}}</h2>
+        <p>{{.I18N.description}}</p>
+        
+        <h3>{{.I18N.site_info}}</h3>
+        <ul>
+            <li><strong>{{.I18N.site_name}}:</strong> {{.Base.SiteName}}</li>
+            <li><strong>{{.I18N.version}}:</strong> {{.Base.Version}}</li>
+            {{if .Base.BaseURL}}<li><strong>{{.I18N.base_url}}:</strong> {{.Base.BaseURL}}</li>{{end}}
+            {{if .Base.Author}}<li><strong>{{.I18N.author}}:</strong> {{.Base.Author}}</li>{{end}}
+        </ul>
+
+        <h3>{{.I18N.current_language}}</h3>
+        <ul>
+            <li><strong>{{.I18N.language_code}}:</strong> {{.Lang.Code}}</li>
+            <li><strong>{{.I18N.language_name}}:</strong> {{.Lang.DisplayName}}</li>
+        </ul>
+    </div>
+
+    <div class="footer">
+        <p>{{.I18N.footer_text}} | {{.Base.SiteName}} v{{.Base.Version}}</p>
+    </div>
+</body>
+</html>

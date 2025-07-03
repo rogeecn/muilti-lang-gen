@@ -1,0 +1,340 @@
+# 多语言文件生成器 (Multilingual File Generator)
+
+一个基于 Go 语言开发的多语言网站生成工具，可以根据模板和语言文件快速生成多语言网站。
+
+## 功能特性
+
+- ✅ 支持自定义 HTML 模板
+- ✅ 基于 JSON 格式的语言索引和数据文件
+- ✅ 自动生成语言间链接
+- ✅ 支持站点基础配置 (manifest.json)
+- ✅ 命令行界面，使用简单
+- ✅ 跨平台支持（Linux、macOS、Windows）
+
+## 核心概念
+
+### 1. 项目结构
+
+```
+project/
+├── index.tmpl     # HTML 模板文件
+├── manifest.json  # 站点配置（可选）
+├── langs/         # 语言文件目录
+│ ├── index.json # 语言索引
+│ ├── zh-CN.json # 中文语言包
+│ └── en-US.json # 英文语言包
+└── outputs/       # 输出目录（自动创建）
+├── zh.html        # 中文页面
+└── en.html        # 英文页面
+```
+
+### 2. 命令行用法
+
+```bash
+# 生成多语言文件（使用当前目录）
+multilang-gen gen .
+
+# 生成多语言文件（指定项目目录）
+multilang-gen gen /path/to/project
+
+# 自定义输出文件名格式
+multilang-gen gen . --output "page-{lang}.html"
+```
+
+### 3. 配置文件
+
+#### manifest.json（站点基础配置）
+```json
+{
+"baseURL": "https://example.com",
+"siteName": "Example Website",
+"author": "Example Team",
+"description": "An example multilingual website",
+"version": "1.0.0"
+}
+```
+
+#### langs/index.json（语言索引）
+```json
+[
+{
+"code": "zh",
+"name": "中文",
+"displayName": "中文",
+"file": "zh-CN.json"
+},
+{
+"code": "en",
+"name": "English",
+"displayName": "English",
+"file": "en-US.json"
+}
+]
+```
+
+#### 语言包文件（zh-CN.json）
+```json
+{
+"title": "网站标题",
+"description": "网站描述",
+"welcome": "欢迎使用",
+"language_switcher": "语言切换",
+"switch_to": "切换到",
+"site_info": "站点信息",
+"footer_text": "页脚文本"
+}
+```
+
+### 4. 模板变量
+
+在 HTML 模板中可以使用以下变量：
+
+#### 基础变量
+- `{{.Lang.Code}}` - 当前语言代码（如 "zh", "en"）
+- `{{.Lang.Name}}` - 语言名称（如 "中文", "English"）
+- `{{.Lang.DisplayName}}` - 显示名称
+- `{{.Lang.Current}}` - 是否为当前语言（布尔值）
+
+#### 站点配置（.Base）
+- `{{.Base.SiteName}}` - 站点名称
+- `{{.Base.BaseURL}}` - 基础URL
+- `{{.Base.Author}}` - 作者
+- `{{.Base.Version}}` - 版本号
+- `{{.Base.Description}}` - 站点描述
+
+#### 语言数据（.I18N）
+- `{{.I18N.title}}` - 页面标题
+- `{{.I18N.description}}` - 页面描述
+- `{{.I18N.任意字段}}` - 语言包中的任意字段
+
+#### 语言链接（.LangLinks）
+```html
+{{range .LangLinks}}
+<a href="{{.URL}}" {{if .Current}}class="current"{{end}}>
+{{.DisplayName}}
+</a>
+{{end}}
+```
+
+### 5. 模板示例
+
+```html
+<!DOCTYPE html>
+<html lang="{{.Lang.Code}}">
+<head>
+<meta charset="UTF-8">
+<title>{{.I18N.title}} - {{.Base.SiteName}}</title>
+<meta name="description" content="{{.I18N.description}}">
+{{if .Base.BaseURL}}<base href="{{.Base.BaseURL}}/">{{end}}
+</head>
+<body>
+<h1>{{.I18N.title}}</h1>
+
+<!-- 语言切换器 -->
+<div class="lang-switcher">
+{{range .LangLinks}}
+<a href="{{.URL}}" {{if .Current}}class="current"{{end}}>
+{{.DisplayName}}
+</a>
+{{end}}
+</div>
+
+<main>
+<p>{{.I18N.description}}</p>
+</main>
+
+<footer>
+{{.I18N.footer_text}} | {{.Base.SiteName}} v{{.Base.Version}}
+</footer>
+</body>
+</html>
+```
+
+## 开发指南
+
+### 构建和安装
+
+```bash
+# 克隆项目
+git clone <repository-url>
+cd multilang-gen
+
+# 构建
+go build -o multilang-gen
+
+# 或使用 Makefile
+make build
+
+# 安装到系统
+make install
+```
+
+### 项目开发
+
+```bash
+# 运行测试
+make test
+
+# 构建所有平台版本
+make build-all
+
+# 运行示例
+make example
+
+# 清理构建文件
+make clean
+```
+
+### 技术架构
+
+#### 核心组件
+
+1. **命令行界面** (`cmd/`)
+- `gen.go` - 主要生成命令
+- `export.go` - 模板导出命令
+- `root.go` - 根命令定义
+
+2. **数据结构**
+```go
+type Language struct {
+Code string `json:"code"`
+Name string `json:"name"`
+DisplayName string `json:"displayName"`
+File string `json:"file"`
+URL string `json:"-"`
+Current bool `json:"-"`
+}
+
+type Manifest struct {
+BaseURL string `json:"baseURL"`
+SiteName string `json:"siteName"`
+Author string `json:"author"`
+Description string `json:"description"`
+Version string `json:"version"`
+}
+```
+
+3. **处理流程**
+1. 读取项目目录结构
+2. 加载 manifest.json（可选）
+3. 读取语言索引 langs/index.json
+4. 为每种语言加载对应的语言包
+5. 解析 HTML 模板
+6. 渲染并输出多语言页面
+
+### 扩展开发
+
+#### 添加新的模板变量
+
+在 `generateLanguageFileFromIndex` 函数中的 `templateData` 结构体中添加新字段：
+
+```go
+templateData := struct {
+Lang Language
+LangLinks []Language
+I18N map[string]interface{}
+Base *Manifest
+// 添加新字段
+Custom interface{}
+}{
+// ...
+Custom: customData,
+}
+```
+
+#### 支持新的文件格式
+
+在 `parseLanguageFile` 函数中添加新的格式支持：
+
+```go
+switch ext {
+case ".json":
+// JSON 处理
+case ".yaml", ".yml":
+// YAML 处理
+default:
+return nil, fmt.Errorf("不支持的文件格式")
+}
+```
+
+### 最佳实践
+
+1. **文件组织**
+- 将所有语言相关文件放在 `langs/` 目录
+- 使用统一的命名规范（如 `zh-CN.json`, `en-US.json`）
+- 保持语言包结构一致
+
+2. **模板设计**
+- 使用语义化的变量名
+- 提供语言切换功能
+- 支持 RTL 语言布局
+
+3. **内容管理**
+- 保持翻译内容的同步
+- 使用版本控制管理多语言内容
+- 定期审查和更新翻译
+
+4. **性能优化**
+- 模板缓存
+- 增量构建
+- 静态资源优化
+
+## 示例项目
+
+项目包含完整的示例在 `fixtures/` 目录：
+
+```
+fixtures/
+├── index.tmpl     # 示例模板
+├── manifest.json  # 站点配置
+├── langs/
+│ ├── index.json # 语言索引
+│ ├── zh-CN.json # 中文语言包
+│ └── en-US.json # 英文语言包
+└── outputs/       # 生成的输出文件
+├── zh.html
+└── en.html
+```
+
+运行示例：
+```bash
+cd fixtures
+multilang-gen gen .
+```
+
+## 故障排除
+
+### 常见问题
+
+1. **模板渲染错误**
+- 检查模板语法
+- 确认变量名正确
+- 验证语言包字段存在
+
+2. **文件路径错误**
+- 确认文件存在
+- 检查路径拼写
+- 验证文件权限
+
+3. **语言包格式错误**
+- 验证JSON格式
+- 检查字符编码
+- 确认字段匹配
+
+### 调试技巧
+
+1. 使用 `--help` 查看命令帮助
+2. 检查生成的输出文件
+3. 验证语言索引配置
+4. 测试单个语言文件
+
+## 相关链接
+
+- [Go HTML Template 文档](https://pkg.go.dev/html/template)
+- [JSON 规范](https://www.json.org/)
+- [HTTP 语言标签](https://tools.ietf.org/html/rfc5646)
+- [Unicode 国际化](https://unicode.org/reports/tr35/)
+
+---
+
+这个工具为多语言网站开发提供了简单而强大的解决方案，适用于静态网站、文档站点、产品页面等多种场景。

@@ -31,30 +31,67 @@ cd multilang-gen
 go build -o multilang-gen
 ```
 
+## 快速开始
+
+### 安装
+
+#### 使用 Makefile 构建
+
+```bash
+git clone <repository-url>
+cd multilang-gen
+make build
+```
+
+#### 手动构建
+
+```bash
+git clone <repository-url>
+cd multilang-gen
+go build -o multilang-gen
+```
+
 ### 基本使用
 
 ```bash
-# 基本用法
-./multilang-gen gen template.html ./langs
+# 在当前目录生成多语言文件
+./multilang-gen gen .
 
-# 自定义输出文件名
-./multilang-gen gen template.html ./langs --output "page-{lang}.html"
+# 在指定目录生成多语言文件
+./multilang-gen gen /path/to/project
+
+# 自定义输出文件名格式
+./multilang-gen gen . --output "page-{lang}.html"
+
+# 导出项目模板
+./multilang-gen export ./my-project
 ```
 
-## 项目结构
+### 项目目录结构
+
+使用 gen 命令前，项目目录应包含以下结构：
 
 ```text
-multilang-gen/
-├── cmd/                   # 命令行相关代码
-├── fixtures/              # 测试文件目录
-│   ├── templates/         # 测试模板
-│   ├── langs/             # 测试语言文件
-│   └── output/            # 测试输出目录
-├── Makefile              # 构建脚本
-├── README.md             # 项目说明
-├── requirements.md       # 需求文档
-└── main.go               # 主程序入口
+project/
+├── index.tmpl              # HTML 模板文件（必需）
+├── manifest.json           # 站点配置（可选）
+├── langs/                  # 语言文件目录（必需）
+│   ├── index.json          # 语言索引（必需）
+│   ├── zh-CN.json          # 中文语言包
+│   └── en-US.json          # 英文语言包
+└── outputs/                # 输出目录（自动创建）
+    ├── zh.html             # 中文页面
+    └── en.html             # 英文页面
 ```
+
+│ ├── langs/ # 测试语言文件
+│ └── output/ # 测试输出目录
+├── Makefile # 构建脚本
+├── README.md # 项目说明
+├── requirements.md # 需求文档
+└── main.go # 主程序入口
+
+````
 
 ## 语言文件格式
 
@@ -85,7 +122,7 @@ multilang-gen/
     "file": "fr.json"
   }
 ]
-```
+````
 
 #### 语言数据文件
 
@@ -118,32 +155,108 @@ multilang-gen/
 
 ## 模板语法
 
-模板使用 Go 的 `html/template` 语法，可以访问以下数据：
+模板使用 Go 的 `html/template` 语法，可以访问以下数据结构：
 
-- `{{.Language}}` - 当前语言标识
-- `{{.LangCode}}` - 当前语言代码
-- `{{.LangName}}` - 当前语言显示名称
-- `{{.Data.key}}` - 语言文件中的键值对数据
-- `{__LANG_LINKS__}` - 其他语言链接的占位符（会被自动替换）
+### 可用变量
+
+- `{{.Lang}}` - 当前语言信息对象
+  - `{{.Lang.Code}}` - 语言代码（如：zh, en, fr）
+  - `{{.Lang.Name}}` - 语言名称（如：中文, English）
+  - `{{.Lang.DisplayName}}` - 显示名称（用于链接文本）
+  - `{{.Lang.URL}}` - 当前语言的文件 URL
+- `{{.LangLinks}}` - 其他语言链接列表
+- `{{.I18N}}` - 当前语言的国际化数据内容（从 JSON 文件加载）
+
+### 语言链接渲染
+
+在模板中使用 `range` 循环来渲染语言切换链接：
+
+```html
+<div class="lang-links">
+  <strong>{{.I18N.switch_language}}:</strong>
+  {{range .LangLinks}}
+  <a href="{{.URL}}">{{.DisplayName}}</a>
+  {{end}}
+</div>
+```
+
+### 高级语言链接渲染
+
+你可以根据需要自定义链接的渲染样式：
+
+```html
+<!-- 简单链接列表 -->
+<div class="languages">
+  {{range .LangLinks}}
+  <a href="{{.URL}}" class="lang-link">{{.DisplayName}}</a>
+  {{end}}
+</div>
+
+<!-- 下拉菜单样式 -->
+<select onchange="location = this.value;">
+  <option value="{{.Lang.URL}}">{{.Lang.DisplayName}} (当前)</option>
+  {{range .LangLinks}}
+  <option value="{{.URL}}">{{.DisplayName}}</option>
+  {{end}}
+</select>
+
+<!-- 带图标的链接 -->
+<ul class="lang-menu">
+  {{range .LangLinks}}
+  <li>
+    <a href="{{.URL}}" title="切换到{{.DisplayName}}">
+      <span class="flag flag-{{.Code}}"></span>
+      {{.DisplayName}}
+    </a>
+  </li>
+  {{end}}
+</ul>
+```
+
+### 条件渲染
+
+可以使用条件语句来控制显示逻辑：
+
+```html
+<!-- 只有多种语言时才显示切换链接 -->
+{{if .LangLinks}}
+<div class="lang-switcher">
+  <span>{{.I18N.switch_language}}:</span>
+  {{range .LangLinks}}
+  <a href="{{.URL}}">{{.DisplayName}}</a>
+  {{end}}
+</div>
+{{end}}
+
+<!-- 根据语言代码显示不同内容 -->
+{{if eq .Lang.Code "zh"}}
+<p>这是中文特有的内容</p>
+{{else if eq .Lang.Code "en"}}
+<p>This is English-specific content</p>
+{{end}}
+```
 
 ### 模板示例
 
 ```html
 <!DOCTYPE html>
-<html lang="{{.Language}}">
+<html lang="{{.Lang.Code}}">
   <head>
-    <title>{{.Data.title}} - {{.Language}}</title>
+    <title>{{.I18N.title}} - {{.Lang.DisplayName}}</title>
   </head>
   <body>
-    <h1>{{.Data.title}}</h1>
-    <p>{{.Data.description}}</p>
+    <h1>{{.I18N.title}}</h1>
+    <p>{{.I18N.description}}</p>
 
     <div class="lang-links">
-      <strong>{{.Data.switch_language}}:</strong> {__LANG_LINKS__}
+      <strong>{{.I18N.switch_language}}:</strong>
+      {{range .LangLinks}}
+      <a href="{{.URL}}">{{.DisplayName}}</a>
+      {{end}}
     </div>
 
     <main>
-      <p>{{.Data.content}}</p>
+      <p>{{.I18N.content}}</p>
     </main>
   </body>
 </html>

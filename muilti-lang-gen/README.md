@@ -1,1 +1,0 @@
-# muilti-lang-gen

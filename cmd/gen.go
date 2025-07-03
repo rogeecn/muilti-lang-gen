@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	_ "embed"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -20,18 +19,34 @@ type Language struct {
 	Name        string `json:"name"`        // 语言名称，如 "中文", "English"
 	DisplayName string `json:"displayName"` // 显示名称，用于链接文本
 	File        string `json:"file"`        // 对应的语言文件名
+	URL         string `json:"-"`           // 生成的文件URL，运行时添加
+	Current     bool   `json:"-"`           // 是否为当前语言，运行时添加
+}
+
+// Manifest 表示站点基础配置
+type Manifest struct {
+	BaseURL     string `json:"baseURL"`
+	SiteName    string `json:"siteName"`
+	Author      string `json:"author"`
+	Description string `json:"description"`
+	Version     string `json:"version"`
 }
 
 // genCmd represents the gen command
 var genCmd = &cobra.Command{
-	Use:   "gen [template] [language-dir]",
-	Short: "根据指定模板生成多语言文件",
-	Long: `根据指定模板和语言文件目录生成多语言文件。
+	Use:   "gen [directory]",
+	Short: "根据指定目录生成多语言文件",
+	Long: `根据指定目录生成多语言文件。目录结构应包含：
+- index.tmpl: 模板文件
+- langs/index.json: 语言索引文件
+- langs/*.json: 语言数据文件
+- manifest.json: 站点基础配置（可选）
+- outputs/: 输出目录
 
 示例:
-  multilang-gen gen template.html ./langs
-  multilang-gen gen template.html ./langs --output "{lang}.html"`,
-	Args: cobra.ExactArgs(2),
+  multilang-gen gen .
+  multilang-gen gen ./project --output "{lang}.html"`,
+	Args: cobra.MaximumNArgs(1),
 	RunE: runGen,
 }
 
@@ -41,10 +56,51 @@ func init() {
 }
 
 func runGen(cmd *cobra.Command, args []string) error {
-	templatePath := args[0]
-	langDir := args[1]
+	// 确定项目目录
+	projectDir := "."
+	if len(args) > 0 {
+		projectDir = args[0]
+	}
 
-	// 1. 读取语言索引文件
+	// 检查项目目录是否存在
+	if _, err := os.Stat(projectDir); os.IsNotExist(err) {
+		return fmt.Errorf("项目目录不存在: %s", projectDir)
+	}
+
+	// 固定的文件路径
+	templatePath := filepath.Join(projectDir, "index.tmpl")
+	langDir := filepath.Join(projectDir, "langs")
+	outputDir := filepath.Join(projectDir, "outputs")
+	manifestPath := filepath.Join(projectDir, "manifest.json")
+
+	// 检查必需文件是否存在
+	if _, err := os.Stat(templatePath); os.IsNotExist(err) {
+		return fmt.Errorf("模板文件不存在: %s", templatePath)
+	}
+
+	if _, err := os.Stat(filepath.Join(langDir, "index.json")); os.IsNotExist(err) {
+		return fmt.Errorf("语言索引文件不存在: %s", filepath.Join(langDir, "index.json"))
+	}
+
+	// 创建输出目录
+	if err := os.MkdirAll(outputDir, 0o755); err != nil {
+		return fmt.Errorf("创建输出目录失败: %w", err)
+	}
+
+	// 1. 读取 manifest.json（可选）
+	manifest, err := loadManifest(manifestPath)
+	if err != nil {
+		fmt.Printf("警告: 无法读取 manifest.json，将使用默认值: %v\n", err)
+		manifest = &Manifest{
+			BaseURL:     "",
+			SiteName:    "Website",
+			Author:      "",
+			Description: "",
+			Version:     "1.0.0",
+		}
+	}
+
+	// 2. 读取语言索引文件
 	languages, err := loadLanguageIndex(langDir)
 	if err != nil {
 		return fmt.Errorf("读取语言索引失败: %w", err)
@@ -63,23 +119,23 @@ func runGen(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Println()
 
-	// 2. 解析模板文件
+	// 3. 解析模板文件
 	tmpl, err := parseTemplate(templatePath)
 	if err != nil {
 		return fmt.Errorf("解析模板文件失败: %w", err)
 	}
 
-	// 3. 生成语言链接
+	// 4. 生成语言链接
 	langLinks := generateLanguageLinksFromIndex(languages)
 
-	// 4. 为每种语言生成文件
+	// 5. 为每种语言生成文件
 	for _, lang := range languages {
-		if err := generateLanguageFileFromIndex(tmpl, lang, langLinks, langDir); err != nil {
+		if err := generateLanguageFileFromIndex(tmpl, lang, langLinks, langDir, outputDir, manifest); err != nil {
 			return fmt.Errorf("生成语言文件 %s 失败: %w", lang.Code, err)
 		}
 
 		outputFile := strings.ReplaceAll(outputPattern, "{lang}", lang.Code)
-		fmt.Printf("生成文件: %s (%s)\n", outputFile, lang.DisplayName)
+		fmt.Printf("生成文件: %s (%s)\n", filepath.Join(outputDir, outputFile), lang.DisplayName)
 	}
 
 	fmt.Println("多语言文件生成完成!")
@@ -118,6 +174,8 @@ func generateLanguageFileFromIndex(
 	currentLang Language,
 	allLangs map[string]Language,
 	langDir string,
+	outputDir string,
+	manifest *Manifest,
 ) error {
 	// 读取当前语言的数据文件
 	langData, err := loadLanguageDataFromFile(langDir, currentLang.File)
@@ -125,35 +183,46 @@ func generateLanguageFileFromIndex(
 		return fmt.Errorf("加载语言数据失败: %w", err)
 	}
 
-	// 生成其他语言链接的HTML
-	var langLinksHTML strings.Builder
+	// 将语言数据合并到当前语言结构中
+	currentLang.URL = strings.ReplaceAll(outputPattern, "{lang}", currentLang.Code)
+	currentLang.Current = true
+
+	// 生成所有语言链接列表（包括当前语言）
+	var allLangLinks []Language
 	for _, lang := range allLangs {
-		if lang.Code != currentLang.Code {
-			outputFile := strings.ReplaceAll(outputPattern, "{lang}", lang.Code)
-			langLinksHTML.WriteString(fmt.Sprintf(`<a href="%s">%s</a> `, outputFile, lang.DisplayName))
-		}
+		// 为每个语言添加输出文件路径和当前状态
+		lang.URL = strings.ReplaceAll(outputPattern, "{lang}", lang.Code)
+		lang.Current = (lang.Code == currentLang.Code)
+		allLangLinks = append(allLangLinks, lang)
+	}
+
+	// 序列化 I18N 数据为 JSON
+	i18nJson, err := json.Marshal(langData)
+	if err != nil {
+		return fmt.Errorf("序列化语言数据失败: %w", err)
 	}
 
 	// 准备模板数据
 	templateData := struct {
-		Language  string
-		LangCode  string
-		LangName  string
-		Data      map[string]interface{}
-		LangLinks string
+		Lang      Language
+		LangLinks []Language
+		I18N      map[string]interface{}
+		I18NJson  string
+		Base      *Manifest
 	}{
-		Language:  currentLang.Code,
-		LangCode:  currentLang.Code,
-		LangName:  currentLang.DisplayName,
-		Data:      langData,
-		LangLinks: strings.TrimSpace(langLinksHTML.String()),
+		Lang:      currentLang,
+		LangLinks: allLangLinks,
+		I18N:      langData,
+		I18NJson:  string(i18nJson),
+		Base:      manifest,
 	}
 
 	// 生成输出文件名
 	outputFile := strings.ReplaceAll(outputPattern, "{lang}", currentLang.Code)
+	outputPath := filepath.Join(outputDir, outputFile)
 
 	// 创建输出文件
-	outFile, err := os.Create(outputFile)
+	outFile, err := os.Create(outputPath)
 	if err != nil {
 		return fmt.Errorf("创建输出文件失败: %w", err)
 	}
@@ -164,38 +233,31 @@ func generateLanguageFileFromIndex(
 		return fmt.Errorf("模板渲染失败: %w", err)
 	}
 
-	// 处理 {__LANG_LINKS__} 替换
-	return replaceLanguageLinks(outputFile, langLinksHTML.String())
+	return nil
 }
 
-// loadLanguageData 加载语言数据文件（仅支持JSON格式）
-func loadLanguageData(langDir, language string) (map[string]interface{}, error) {
-	// 只支持 JSON 格式
-	filePath := filepath.Join(langDir, language+".json")
-	if _, err := os.Stat(filePath); err == nil {
-		// 文件存在，解析JSON文件
-		return parseLanguageFile(filePath, ".json")
+// loadManifest 加载站点配置文件
+func loadManifest(manifestPath string) (*Manifest, error) {
+	content, err := os.ReadFile(manifestPath)
+	if err != nil {
+		return nil, fmt.Errorf("读取 manifest.json 失败: %w", err)
 	}
 
-	// 如果没有找到数据文件，返回错误
-	return nil, fmt.Errorf("未找到语言文件 %s.json", language)
+	var manifest Manifest
+	if err := json.Unmarshal(content, &manifest); err != nil {
+		return nil, fmt.Errorf("解析 manifest.json 失败: %w", err)
+	}
+
+	return &manifest, nil
 }
 
 // loadLanguageIndex 加载语言索引文件
 func loadLanguageIndex(langDir string) ([]Language, error) {
 	indexPath := filepath.Join(langDir, "index.json")
 
-	var content []byte
-	var err error
-
-	// 首先尝试读取外部文件
-	if _, statErr := os.Stat(indexPath); statErr == nil {
-		content, err = os.ReadFile(indexPath)
-		if err != nil {
-			return nil, fmt.Errorf("读取外部索引文件失败: %w", err)
-		}
-	} else {
-		return nil, fmt.Errorf("外部索引文件不存在，请先创建 index.json")
+	content, err := os.ReadFile(indexPath)
+	if err != nil {
+		return nil, fmt.Errorf("读取语言索引文件失败: %w", err)
 	}
 
 	var languages []Language
@@ -226,19 +288,6 @@ func parseLanguageFile(filePath, ext string) (map[string]interface{}, error) {
 	}
 
 	return result, nil
-}
-
-// replaceLanguageLinks 替换文件中的 {__LANG_LINKS__} 占位符
-func replaceLanguageLinks(filename, langLinks string) error {
-	content, err := os.ReadFile(filename)
-	if err != nil {
-		return err
-	}
-
-	// 替换 {__LANG_LINKS__} 占位符
-	updatedContent := strings.ReplaceAll(string(content), "{__LANG_LINKS__}", langLinks)
-
-	return os.WriteFile(filename, []byte(updatedContent), 0o644)
 }
 
 // loadLanguageDataFromFile 从指定文件加载语言数据
