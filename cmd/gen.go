@@ -11,7 +11,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var outputPattern string
+var (
+	outputPattern string
+	langCodes     []string
+)
 
 // Language 表示语言配置
 type Language struct {
@@ -45,7 +48,10 @@ var genCmd = &cobra.Command{
 
 示例:
   multilang-gen gen .
-  multilang-gen gen ./project --output "{lang}.html"`,
+  multilang-gen gen ./project --output "{lang}.html"
+  multilang-gen gen . --lang zh
+  multilang-gen gen . --lang zh,en
+  multilang-gen gen . --lang zh --lang en --output "page-{lang}.html"`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: runGen,
 }
@@ -53,6 +59,8 @@ var genCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(genCmd)
 	genCmd.Flags().StringVarP(&outputPattern, "output", "o", "{lang}.html", "输出文件名模式，{lang} 为语言替代符")
+	genCmd.Flags().
+		StringSliceVarP(&langCodes, "lang", "l", []string{}, "只生成指定语言代码的文件，支持多个语言（如: zh,en 或 --lang zh --lang en）")
 }
 
 func runGen(cmd *cobra.Command, args []string) error {
@@ -110,14 +118,56 @@ func runGen(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("在索引文件中未找到任何语言配置")
 	}
 
-	fmt.Printf("找到 %d 种语言: ", len(languages))
-	for i, lang := range languages {
-		if i > 0 {
-			fmt.Print(", ")
+	// 如果指定了语言代码，过滤语言列表
+	if len(langCodes) > 0 {
+		var filteredLanguages []Language
+		langCodeSet := make(map[string]bool)
+
+		// 创建语言代码集合便于查找
+		for _, code := range langCodes {
+			langCodeSet[code] = true
 		}
-		fmt.Printf("%s(%s)", lang.DisplayName, lang.Code)
+
+		// 过滤出指定的语言
+		for _, lang := range languages {
+			if langCodeSet[lang.Code] {
+				filteredLanguages = append(filteredLanguages, lang)
+				delete(langCodeSet, lang.Code) // 标记已找到
+			}
+		}
+
+		// 检查是否有未找到的语言代码
+		if len(langCodeSet) > 0 {
+			var notFound []string
+			for code := range langCodeSet {
+				notFound = append(notFound, code)
+			}
+			return fmt.Errorf("未找到以下语言代码的配置: %v", notFound)
+		}
+
+		if len(filteredLanguages) == 0 {
+			return fmt.Errorf("指定的语言代码都未找到对应的配置")
+		}
+
+		languages = filteredLanguages
+		fmt.Printf("只生成指定语言 (%d 种): ", len(languages))
+		for i, lang := range languages {
+			if i > 0 {
+				fmt.Print(", ")
+			}
+			fmt.Printf("%s(%s)", lang.DisplayName, lang.Code)
+		}
+		fmt.Println()
+	} else {
+		fmt.Printf("找到 %d 种语言: ", len(languages))
+		for i, lang := range languages {
+			if i > 0 {
+				fmt.Print(", ")
+			}
+			fmt.Printf("%s(%s)", lang.DisplayName, lang.Code)
+		}
+		fmt.Println()
 	}
-	fmt.Println()
 
 	// 3. 解析模板文件
 	tmpl, err := parseTemplate(templatePath)
@@ -125,8 +175,14 @@ func runGen(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("解析模板文件失败: %w", err)
 	}
 
-	// 4. 生成语言链接
-	langLinks := generateLanguageLinksFromIndex(languages)
+	// 4. 读取完整的语言索引（用于生成语言链接）
+	allLanguages, err := loadLanguageIndex(langDir)
+	if err != nil {
+		return fmt.Errorf("读取完整语言索引失败: %w", err)
+	}
+
+	// 生成语言链接（使用完整的语言列表）
+	langLinks := generateLanguageLinksFromIndex(allLanguages)
 
 	// 5. 为每种语言生成文件
 	for _, lang := range languages {

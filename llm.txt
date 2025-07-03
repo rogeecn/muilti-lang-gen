@@ -39,6 +39,11 @@ multilang-gen gen /path/to/project
 
 # 自定义输出文件名格式
 multilang-gen gen . --output "page-{lang}.html"
+
+# 只生成指定语言的文件
+multilang-gen gen . --lang zh
+multilang-gen gen . --lang zh,en
+multilang-gen gen . --lang zh --lang en
 ```
 
 ### 3. 配置文件
@@ -85,7 +90,38 @@ multilang-gen gen . --output "page-{lang}.html"
 }
 ```
 
-### 4. 模板变量
+### 4. 高级功能
+
+#### 语言过滤生成
+
+`gen` 命令支持只生成指定语言的文件，这在以下场景很有用：
+
+1. **开发调试**: 只生成当前正在开发的语言版本
+2. **增量构建**: 只更新修改过的语言版本
+3. **部署优化**: 分别部署不同语言版本到不同地区
+
+**使用方式:**
+
+```bash
+# 只生成中文版本
+multilang-gen gen . --lang zh
+
+# 生成多个指定语言（逗号分隔）
+multilang-gen gen . --lang zh,en
+
+# 生成多个指定语言（重复参数）
+multilang-gen gen . --lang zh --lang en --lang ja
+
+# 结合自定义输出格式
+multilang-gen gen . --lang zh,en --output "site-{lang}.html"
+```
+
+**特性说明:**
+- 语言链接生成仍使用完整的语言列表，确保页面间导航正常
+- 如果指定了不存在的语言代码，会显示错误信息
+- 支持与其他参数组合使用（如 `--output`）
+
+### 5. 模板变量
 
 在 HTML 模板中可以使用以下变量：
 
@@ -116,7 +152,7 @@ multilang-gen gen . --output "page-{lang}.html"
 {{end}}
 ```
 
-### 5. 模板示例
+### 6. 模板示例
 
 ```html
 <!DOCTYPE html>

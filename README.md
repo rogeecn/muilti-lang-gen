@@ -63,6 +63,11 @@ go build -o multilang-gen
 # 自定义输出文件名格式
 ./multilang-gen gen . --output "page-{lang}.html"
 
+# 只生成指定语言的文件
+./multilang-gen gen . --lang zh
+./multilang-gen gen . --lang zh,en
+./multilang-gen gen . --lang zh --lang en
+
 # 初始化项目模板
 ./multilang-gen init ./my-project
 ```
