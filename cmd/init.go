@@ -9,11 +9,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// exportCmd represents the export command
-var exportCmd = &cobra.Command{
-	Use:   "export [target-dir]",
-	Short: "导出项目模板文件",
-	Long: `导出完整的项目模板文件到指定目录。
+// initCmd represents the init command
+var initCmd = &cobra.Command{
+	Use:   "init [target-dir]",
+	Short: "初始化项目模板文件",
+	Long: `初始化完整的项目模板文件到指定目录。
 
 这个命令会创建一个完整的多语言项目模板，包括：
 - index.tmpl: HTML 模板文件
@@ -23,17 +23,17 @@ var exportCmd = &cobra.Command{
 - langs/en-US.json: 英文语言包示例
 
 示例:
-  multilang-gen export ./my-project
-  multilang-gen export .`,
+  multilang-gen init ./my-project
+  multilang-gen init .`,
 	Args: cobra.MaximumNArgs(1),
-	RunE: runExport,
+	RunE: runInit,
 }
 
 func init() {
-	rootCmd.AddCommand(exportCmd)
+	rootCmd.AddCommand(initCmd)
 }
 
-func runExport(cmd *cobra.Command, args []string) error {
+func runInit(cmd *cobra.Command, args []string) error {
 	targetDir := "."
 	if len(args) > 0 {
 		targetDir = args[0]
@@ -137,7 +137,7 @@ func runExport(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("导出英文语言包失败: %w", err)
 	}
 
-	fmt.Printf("项目模板已导出到: %s\n", targetDir)
+	fmt.Printf("项目模板已初始化到: %s\n", targetDir)
 	fmt.Println("包含文件:")
 	fmt.Println("  - manifest.json")
 	fmt.Println("  - langs/index.json")

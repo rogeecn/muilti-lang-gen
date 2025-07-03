@@ -63,8 +63,8 @@ go build -o multilang-gen
 # 自定义输出文件名格式
 ./multilang-gen gen . --output "page-{lang}.html"
 
-# 导出项目模板
-./multilang-gen export ./my-project
+# 初始化项目模板
+./multilang-gen init ./my-project
 ```
 
 ### 项目目录结构

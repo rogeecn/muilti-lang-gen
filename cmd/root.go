@@ -16,12 +16,14 @@ var rootCmd = &cobra.Command{
 	Long: `多语言文件生成器 - 根据指定模板和语言文件生成对应的多语言页面。
 
 支持功能:
+- 初始化项目模板文件
 - 根据模板文件生成多语言页面
 - 自定义输出文件名格式
 - 自动生成语言间链接
 - 支持多种语言数据格式
 
 示例:
+  multilang-gen init ./my-project
   multilang-gen gen template.html ./langs
   multilang-gen gen template.html ./langs --output "{lang}.html"`,
 	// Uncomment the following line if your bare application
