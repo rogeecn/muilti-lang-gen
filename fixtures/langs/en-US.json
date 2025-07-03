@@ -1,0 +1,17 @@
+{
+    "author": "Author",
+    "base_url": "Base URL",
+    "current_language": "Current Language",
+    "description": "This is a multilingual website example",
+    "footer_text": "Footer Text",
+    "language_code": "Language Code",
+    "language_name": "Language Name",
+    "language_switcher": "Language Switcher",
+    "site_info": "Site Information",
+    "site_name": "Site Name",
+    "subtitle": "Template-based multilingual website",
+    "switch_to": "Switch to",
+    "title": "My Website",
+    "version": "Version",
+    "welcome": "Welcome"
+}

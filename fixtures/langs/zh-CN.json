@@ -1,0 +1,17 @@
+{
+    "author": "作者",
+    "base_url": "基础URL",
+    "current_language": "当前语言",
+    "description": "这是一个多语言网站示例",
+    "footer_text": "页脚文本",
+    "language_code": "语言代码",
+    "language_name": "语言名称",
+    "language_switcher": "语言切换",
+    "site_info": "站点信息",
+    "site_name": "站点名称",
+    "subtitle": "基于模板的多语言网站",
+    "switch_to": "切换到",
+    "title": "我的网站",
+    "version": "版本",
+    "welcome": "欢迎使用"
+}

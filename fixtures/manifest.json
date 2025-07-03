@@ -1,0 +1,7 @@
+{
+    "author": "Website Author",
+    "baseURL": "https://example.com",
+    "description": "A multilingual website",
+    "siteName": "My Website",
+    "version": "1.0.0"
+}
