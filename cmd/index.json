@@ -1,0 +1,74 @@
+[
+    {
+        "code": "zh",
+        "name": "中文",
+        "displayName": "中文",
+        "file": "zh.json"
+    },
+    {
+        "code": "en",
+        "name": "English",
+        "displayName": "English",
+        "file": "en.json"
+    },
+    {
+        "code": "fr",
+        "name": "Français",
+        "displayName": "Français",
+        "file": "fr.json"
+    },
+    {
+        "code": "es",
+        "name": "Español",
+        "displayName": "Español",
+        "file": "es.json"
+    },
+    {
+        "code": "de",
+        "name": "Deutsch",
+        "displayName": "Deutsch",
+        "file": "de.json"
+    },
+    {
+        "code": "ja",
+        "name": "日本語",
+        "displayName": "日本語",
+        "file": "ja.json"
+    },
+    {
+        "code": "ko",
+        "name": "한국어",
+        "displayName": "한국어",
+        "file": "ko.json"
+    },
+    {
+        "code": "pt",
+        "name": "Português",
+        "displayName": "Português",
+        "file": "pt.json"
+    },
+    {
+        "code": "ru",
+        "name": "Русский",
+        "displayName": "Русский",
+        "file": "ru.json"
+    },
+    {
+        "code": "ar",
+        "name": "العربية",
+        "displayName": "العربية",
+        "file": "ar.json"
+    },
+    {
+        "code": "it",
+        "name": "Italiano",
+        "displayName": "Italiano",
+        "file": "it.json"
+    },
+    {
+        "code": "nl",
+        "name": "Nederlands",
+        "displayName": "Nederlands",
+        "file": "nl.json"
+    }
+]

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="{{.Language}}">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Data.title}} - {{.Language}}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .header {
+            background-color: #f4f4f4;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .lang-links {
+            margin: 20px 0;
+            padding: 10px;
+            background-color: #e9e9e9;
+            border-radius: 3px;
+        }
+
+        .lang-links a {
+            margin-right: 10px;
+            text-decoration: none;
+            color: #007bff;
+        }
+
+        .lang-links a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>{{.Data.title}}</h1>
+        <p>{{.Data.description}}</p>
+    </div>
+
+    <div class="lang-links">
+        <strong>{{.Data.switch_language}}:</strong> {__LANG_LINKS__}
+    </div>
+
+    <main>
+        <h2>{{.Data.welcome}}</h2>
+        <p>{{.Data.content}}</p>
+
+        <h3>{{.Data.features}}</h3>
+        <ul>
+            <li>{{.Data.feature1}}</li>
+            <li>{{.Data.feature2}}</li>
+            <li>{{.Data.feature3}}</li>
+        </ul>
+    </main>
+
+    <footer>
+        <p><em>{{.Data.footer}}</em></p>
+    </footer>
+</body>
+
+</html>
