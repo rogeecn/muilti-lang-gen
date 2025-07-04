@@ -175,14 +175,8 @@ func runGen(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("解析模板文件失败: %w", err)
 	}
 
-	// 4. 读取完整的语言索引（用于生成语言链接）
-	allLanguages, err := loadLanguageIndex(langDir)
-	if err != nil {
-		return fmt.Errorf("读取完整语言索引失败: %w", err)
-	}
-
-	// 生成语言链接（使用完整的语言列表）
-	langLinks := generateLanguageLinksFromIndex(allLanguages)
+	// 4. 生成语言链接（使用过滤后的语言列表）
+	langLinks := generateLanguageLinksFromIndex(languages)
 
 	// 5. 为每种语言生成文件
 	for _, lang := range languages {
@@ -228,7 +222,7 @@ func generateLanguageLinksFromIndex(languages []Language) map[string]Language {
 func generateLanguageFileFromIndex(
 	tmpl *template.Template,
 	currentLang Language,
-	allLangs map[string]Language,
+	langLinks map[string]Language,
 	langDir string,
 	outputDir string,
 	manifest *Manifest,
@@ -243,9 +237,9 @@ func generateLanguageFileFromIndex(
 	currentLang.URL = strings.ReplaceAll(outputPattern, "{lang}", currentLang.Code)
 	currentLang.Current = true
 
-	// 生成所有语言链接列表（包括当前语言）
+	// 生成语言链接列表（使用传入的语言链接）
 	var allLangLinks []Language
-	for _, lang := range allLangs {
+	for _, lang := range langLinks {
 		// 为每个语言添加输出文件路径和当前状态
 		lang.URL = strings.ReplaceAll(outputPattern, "{lang}", lang.Code)
 		lang.Current = (lang.Code == currentLang.Code)
